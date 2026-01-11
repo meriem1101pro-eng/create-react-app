@@ -1,165 +1,367 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import "./index.css";
 
 function ArticlesApp() {
- 
-  const articlesData = [
-    {
-      userId: 1,
-      id: 1,   
-      title: "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
-      body: "quia et suscipit\nsuscipit recusandae consequuntur expedita et cum\nreprehenderit molestiae ut ut quas totam\nnostrum rerum est autem sunt rem eveniet architecto"
-    },
-    {
-      userId: 1,
-      id: 2,
-      title: "qui est esse",
-      body: "est rerum tempore vitae\nsequi sint nihil reprehenderit dolor beatae ea dolores neque\nfugiat blanditiis voluptate porro vel nihil molestiae ut reiciendis\nqui aperiam non debitis possimus qui neque nisi nulla"
-    },
-    {
-      userId: 2,
-      id: 11,
-      title: "et ea vero quia laudantium autem",
-      body: "delectus reiciendis molestiae occaecati non minima eveniet qui voluptatibus\naccusamus in eum beatae sit\nvel qui neque voluptates ut commodi qui incidunt\nut animi commodi"
-    }
-  ];
-
-  const [commentaires, setCommentaires] = useState([
-    {
-      postId: 1,
-      id: 1,
-      body: "laudantium enim quasi est quidem magnam voluptate ipsam eos\ntempora quo necessitatibus"
-    },
-    {
-      postId: 1,
-      id: 2,
-      body: "est natus enim nihil est dolore omnis voluptatem numquam\net omnis occaecati"
-    }
-  ]);
-
+  // États
+  const [articles, setArticles] = useState([]);
+  const [commentaires, setCommentaires] = useState([]);
   const [recherche, setRecherche] = useState("");
-  const [userFilter, setUserFilter] = useState("");
+  const [filtreUtilisateur, setFiltreUtilisateur] = useState("");
   const [articleActuel, setArticleActuel] = useState(null);
-  const [viewMode, setViewMode] = useState(""); // 'details' or 'comments'
-  const [newCommentBody, setNewCommentBody] = useState("");
-      
-  const filteredArticles = articlesData.filter(a =>
-    a.title.toLowerCase().includes(recherche.toLowerCase()) &&
-    (userFilter === "" || a.userId === Number(userFilter))
-  );
+  const [modeAffichage, setModeAffichage] = useState("details");
+  const [nouveauCommentaire, setNouveauCommentaire] = useState({ 
+    nom: "", 
+    email: "", 
+    contenu: "" 
+  });
+  const [chargement, setChargement] = useState(true);
+  const [erreur, setErreur] = useState(null);
 
+  // Récupérer les données depuis l'API JSON
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setChargement(true);
+        
+        // Articles
+        const reponseArticles = await fetch("https://jsonplaceholder.typicode.com/posts");
+        if (!reponseArticles.ok) throw new Error("Erreur de chargement des articles");
+        const donneesArticles = await reponseArticles.json();
+        
+        // Commentaires
+        const reponseCommentaires = await fetch("https://jsonplaceholder.typicode.com/comments");
+        if (!reponseCommentaires.ok) throw new Error("Erreur de chargement des commentaires");
+        const donneesCommentaires = await reponseCommentaires.json();
+        
+        setArticles(donneesArticles.slice(0, 15));
+        setCommentaires(donneesCommentaires.slice(0, 30));
+        
+        // Sélectionner le premier article par défaut
+        if (donneesArticles.length > 0) {
+          setArticleActuel(donneesArticles[0]);
+        }
+        
+        setChargement(false);
+      } catch (err) {
+        setErreur("Échec du chargement des données. Vérifiez votre connexion.");
+        setChargement(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Filtrer les articles
+  const articlesFiltres = articles.filter(article => {
+    const correspondRecherche = article.title.toLowerCase().includes(recherche.toLowerCase());
+    const correspondUtilisateur = filtreUtilisateur === "" || article.userId.toString() === filtreUtilisateur;
+    return correspondRecherche && correspondUtilisateur;
+  });
+
+  // Utilisateurs uniques
+  const utilisateursUniques = [...new Set(articles.map(article => article.userId))].sort((a, b) => a - b);
+
+  // Ajouter un commentaire
   const ajouterCommentaire = () => {
-    if (newCommentBody.trim() !== "" && articleActuel) {
-      const nouveau = {
-        id: Date.now(),
-        postId: articleActuel.id,
-        body: newCommentBody
-      };
-      setCommentaires([...commentaires, nouveau]);
-      setNewCommentBody("");
-    }
+    if (!nouveauCommentaire.contenu.trim() || !articleActuel) return;
+
+    const comment = {
+      postId: articleActuel.id,
+      id: Date.now(),
+      name: nouveauCommentaire.nom || "Utilisateur",
+      email: nouveauCommentaire.email || "utilisateur@exemple.com",
+      body: nouveauCommentaire.contenu
+    };
+
+    setCommentaires([comment, ...commentaires]);
+    setNouveauCommentaire({ nom: "", email: "", contenu: "" });
   };
 
+  // Supprimer un commentaire
   const supprimerCommentaire = (id) => {
-    setCommentaires(commentaires.filter(c => c.id !== id));
+    setCommentaires(commentaires.filter(comment => comment.id !== id));
   };
 
-  const styles = {
-    container: { display: "flex", gap: "20px", padding: "20px", fontFamily: "Arial, sans-serif" },
-    column: { border: "1px solid black", width: "50%", padding: "15px", minHeight: "90vh" },
-    headerRow: { display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" },
-    card: { border: "1px solid black", padding: "15px", marginBottom: "10px", position: "relative" },
-    btnGroup: { display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "10px" },
-    button: { background: "#ADD8E6", border: "1px solid #777", padding: "5px 15px", cursor: "pointer", boxShadow: "2px 2px 2px #ccc" },
-    input: { border: "1px solid black", padding: "5px" },
-    textarea: { width: "100%", height: "60px", border: "1px solid black", marginTop: "10px", padding: "5px", resize: "none" }
+  // Commentaires de l'article actuel
+  const commentairesActuels = commentaires.filter(comment => comment.postId === articleActuel?.id);
+
+  // Mettre à jour le formulaire
+  const mettreAJourCommentaire = (champ, valeur) => {
+    setNouveauCommentaire(prev => ({ ...prev, [champ]: valeur }));
   };
+
+  if (chargement) {
+    return (
+      <div className="chargement">
+        <div className="spinner"></div>
+        <h2>Chargement des données...</h2>
+        <p>Depuis JSONPlaceholder API</p>
+      </div>
+    );
+  }
+
+  if (erreur) {
+    return (
+      <div className="erreur">
+        <div className="icone-erreur"></div>
+        <h2>Erreur</h2>
+        <p>{erreur}</p>
+        <button 
+          className="btn-reessayer"
+          onClick={() => window.location.reload()}
+        >
+          Réessayer
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div style={styles.container}>
-      
-      {/* ================= LEFT COLUMN: ARTICLES ================= */}
-      <div style={styles.column}>
-        <div style={styles.headerRow}>
-          <h1 style={{ margin: 0 }}>Articles</h1>
-          <input 
-            style={styles.input} 
-            placeholder="Recherche" 
-            value={recherche}
-            onChange={(e) => setRecherche(e.target.value)} 
-          />
-          <select style={styles.input} onChange={(e) => setUserFilter(e.target.value)}>
-            <option value="">Utilisateur</option>
-            <option value="1">User 1</option>
-            <option value="2">User 2</option>
-          </select>
+    <div className="application">
+      {/* En-tête */}
+      <header className="en-tete">
+        <div className="contenu-en-tete">
+          <h1>Blog d'Articles</h1>
+          <p>
+            {articles.length} articles • {commentaires.length} commentaires
+          </p>
         </div>
+      </header>
 
-        {filteredArticles.map(art => (
-          <div key={art.id} style={styles.card}>
-            <div style={{ fontSize: "16px", fontWeight: "bold" }}>{art.title}</div>
-            <div style={styles.btnGroup}>
-              <button style={styles.button} onClick={() => { setArticleActuel(art); setViewMode("details"); }}>
-                Détails
-              </button>
-              <button style={styles.button} onClick={() => { setArticleActuel(art); setViewMode("comments"); }}>
-                Commentaires
-              </button>
+      {/* Contenu principal */}
+      <main className="conteneur-principal">
+        {/* Colonne gauche - Articles */}
+        <section className="colonne-articles">
+          <div className="section-filtres">
+            <h2>Liste des Articles</h2>
+            <div className="filtres">
+              <input
+                type="text"
+                className="champ-recherche"
+                placeholder=" Rechercher un article..."
+                value={recherche}
+                onChange={(e) => setRecherche(e.target.value)}
+              />
+              
+              <select
+                className="select-utilisateur"
+                value={filtreUtilisateur}
+                onChange={(e) => setFiltreUtilisateur(e.target.value)}
+              >
+                <option value=""> Tous les utilisateurs</option>
+                {utilisateursUniques.map(id => (
+                  <option key={id} value={id}>
+                    Utilisateur {id}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="info-filtres">
+              <span className="badge-info">{articlesFiltres.length} article(s) trouvé(s)</span>
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* ================= RIGHT COLUMN: DETAILS / COMMENTS ================= */}
-      <div style={styles.column}>
-        {!articleActuel ? (
-          <p>Please select an article to see details or comments.</p>
-        ) : (
-          <>
-            <h1>{viewMode === "details" ? "Détails" : "Commentaires"}</h1>
-            
-            {/* --- VIEW: DETAILS --- */}
-            {viewMode === "details" && (
-              <div style={styles.card}>
-                <p><strong>ID:</strong> {articleActuel.id}</p>
-                <p><strong>User ID:</strong> {articleActuel.userId}</p>
-                <p><strong>Title:</strong> {articleActuel.title}</p>
-                <p><strong>Body:</strong> {articleActuel.body}</p>
+          <div className="liste-articles">
+            {articlesFiltres.length === 0 ? (
+              <div className="aucune-donnee">
+                <p>Aucun article ne correspond à votre recherche</p>
+              </div>
+            ) : (
+              articlesFiltres.map(article => (
+                <div
+                  key={article.id}
+                  className={`carte-article ${articleActuel?.id === article.id ? 'selectionne' : ''}`}
+                  onClick={() => {
+                    setArticleActuel(article);
+                    setModeAffichage("details");
+                  }}
+                >
+                  <div className="en-tete-carte">
+                    <div className="badge-utilisateur">
+                      <span className="badge-icon"></span>
+                      <span>User {article.userId}</span>
+                    </div>
+                    <span className="badge-id">#{article.id}</span>
+                  </div>
+                  
+                  <h3 className="titre-article">
+                    {article.title.length > 50 
+                      ? `${article.title.substring(0, 50)}...` 
+                      : article.title}
+                  </h3>
+                  
+                  <p className="extrait-article">
+                    {article.body.length > 80 
+                      ? `${article.body.substring(0, 80)}...` 
+                      : article.body}
+                  </p>
+                  
+                  <div className="actions-carte">
+                    <span className="nombre-commentaires">
+                       {commentaires.filter(c => c.postId === article.id).length}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        {/* Colonne droite - Détails/Commentaires */}
+        <section className="colonne-details">
+          <div className="en-tete-details">
+            <h2>
+              {articleActuel ? articleActuel.title.substring(0, 40) + (articleActuel.title.length > 40 ? "..." : "") : "Sélection"}
+            </h2>
+            {articleActuel && (
+              <div className="info-article">
+                <span className="info-badge"> User {articleActuel.userId}</span>
+                <span className="info-badge">#ID: {articleActuel.id}</span>
               </div>
             )}
+          </div>
 
-            {/* --- VIEW: COMMENTS --- */}
-            {viewMode === "comments" && (
-              <>
-                {commentaires
-                  .filter(c => c.postId === articleActuel.id)
-                  .map(com => (
-                    <div key={com.id} style={styles.card}>
-                      <div>{com.body}</div>
-                      <div style={styles.btnGroup}>
-                        <button style={styles.button} onClick={() => supprimerCommentaire(com.id)}>
-                          Supprimer
-                        </button>
+          {!articleActuel ? (
+            <div className="selection-vide">
+              <div className="icone-vide"></div>
+              <h3>Selectionnez un article</h3>
+              <p>Cliquez sur un article de la liste pour afficher ses détails</p>
+            </div>
+          ) : (
+            <div className="contenu-details">
+              {/* Onglets */}
+              <div className="onglets">
+                <button
+                  className={`onglet ${modeAffichage === 'details' ? 'actif' : ''}`}
+                  onClick={() => setModeAffichage("details")}
+                >
+                  Détails
+                </button>
+                <button
+                  className={`onglet ${modeAffichage === 'commentaires' ? 'actif' : ''}`}
+                  onClick={() => setModeAffichage("commentaires")}
+                >
+                   Commentaires ({commentairesActuels.length})
+                </button>
+              </div>
+
+              {/* Détails de l'article */}
+              {modeAffichage === "details" && (
+                <div className="details-article">
+                  <div className="carte-details">
+                    <h3 className="titre-details">Contenu de l'article</h3>
+                    <div className="corps-details">
+                      <p>{articleActuel.body}</p>
+                    </div>
+                    <div className="stats-details">
+                      <div className="stat-item">
+                        <span className="stat-label">Nombre de commentaires :</span>
+                        <span className="stat-value">{commentairesActuels.length}</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-label">Auteur :</span>
+                        <span className="stat-value">User {articleActuel.userId}</span>
                       </div>
                     </div>
-                  ))}
-
-                <textarea 
-                  style={styles.textarea}
-                  placeholder="Écrire un commentaire..."
-                  value={newCommentBody}
-                  onChange={(e) => setNewCommentBody(e.target.value)}
-                />
-                <div style={styles.btnGroup}>
-                  <button style={styles.button} onClick={ajouterCommentaire}>
-                    Ajouter
-                  </button>
+                  </div>
                 </div>
-              </>
-            )}
-          </>
-        )}
-      </div>
+              )}
 
+              {/* Section commentaires */}
+              {modeAffichage === "commentaires" && (
+                <div className="section-commentaires">
+                  {/* Formulaire d'ajout */}
+                  <div className="formulaire-ajout">
+                    <h3> Ajouter un commentaire</h3>
+                    <div className="groupe-formulaire">
+                      <input
+                        type="text"
+                        className="champ-formulaire"
+                        placeholder="Nom (optionnel)"
+                        value={nouveauCommentaire.nom}
+                        onChange={(e) => mettreAJourCommentaire("nom", e.target.value)}
+                      />
+                      <input
+                        type="email"
+                        className="champ-formulaire"
+                        placeholder="Email (optionnel)"
+                        value={nouveauCommentaire.email}
+                        onChange={(e) => mettreAJourCommentaire("email", e.target.value)}
+                      />
+                    </div>
+                    <textarea
+                      className="zone-texte"
+                      placeholder="Votre commentaire..."
+                      value={nouveauCommentaire.contenu}
+                      onChange={(e) => mettreAJourCommentaire("contenu", e.target.value)}
+                      rows="3"
+                    />
+                    <div className="actions-formulaire">
+                      <button
+                        className="btn-publier"
+                        onClick={ajouterCommentaire}
+                        disabled={!nouveauCommentaire.contenu.trim()}
+                      >
+                        Publier le commentaire
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Liste des commentaires */}
+                  <div className="liste-commentaires">
+                    <h3>💬 Commentaires ({commentairesActuels.length})</h3>
+                    
+                    {commentairesActuels.length === 0 ? (
+                      <div className="aucun-commentaire">
+                        <p>Aucun commentaire. Soyez le premier à commenter !</p>
+                      </div>
+                    ) : (
+                      commentairesActuels.map(commentaire => (
+                        <div key={commentaire.id} className="carte-commentaire">
+                          <div className="en-tete-commentaire">
+                            <div className="info-auteur">
+                              <strong className="auteur">
+                                {commentaire.name}
+                              </strong>
+                              <small className="email">
+                                {commentaire.email}
+                              </small>
+                            </div>
+                            <button
+                              className="btn-supprimer"
+                              onClick={() => supprimerCommentaire(commentaire.id)}
+                              title="Supprimer ce commentaire"
+                            >
+                              
+                            </button>
+                          </div>
+                          <div className="contenu-commentaire">
+                            <p>{commentaire.body}</p>
+                          </div>
+                          <div className="pied-commentaire">
+                            <small className="date-commentaire">Commentaire #{commentaire.id}</small>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      </main>
+
+      {/* Pied de page */}
+      <footer className="pied-page">
+        <p>
+          <strong>Blog d'Articles</strong> • Données de 
+          <a href="https://jsonplaceholder.typicode.com" target="_blank" rel="noreferrer">
+            JSONPlaceholder
+          </a>
+          • {new Date().getFullYear()}
+        </p>
+      </footer>
     </div>
   );
 }
