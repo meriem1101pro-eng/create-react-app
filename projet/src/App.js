@@ -36,14 +36,12 @@ function ArticlesApp() {
     }
   ]);
 
-
   const [recherche, setRecherche] = useState("");
   const [userFilter, setUserFilter] = useState("");
   const [articleActuel, setArticleActuel] = useState(null);
   const [viewMode, setViewMode] = useState(""); // 'details' or 'comments'
   const [newCommentBody, setNewCommentBody] = useState("");
       
-       
   const filteredArticles = articlesData.filter(a =>
     a.title.toLowerCase().includes(recherche.toLowerCase()) &&
     (userFilter === "" || a.userId === Number(userFilter))
@@ -65,7 +63,6 @@ function ArticlesApp() {
     setCommentaires(commentaires.filter(c => c.id !== id));
   };
 
-
   const styles = {
     container: { display: "flex", gap: "20px", padding: "20px", fontFamily: "Arial, sans-serif" },
     column: { border: "1px solid black", width: "50%", padding: "15px", minHeight: "90vh" },
@@ -86,7 +83,7 @@ function ArticlesApp() {
           <h1 style={{ margin: 0 }}>Articles</h1>
           <input 
             style={styles.input} 
-            placeholder="Recherch" 
+            placeholder="Recherche" 
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)} 
           />
@@ -124,7 +121,7 @@ function ArticlesApp() {
             {viewMode === "details" && (
               <div style={styles.card}>
                 <p><strong>ID:</strong> {articleActuel.id}</p>
-                <p><strong>User ID:</strong> {xarticleActuel.userId}</p>
+                <p><strong>User ID:</strong> {articleActuel.userId}</p>
                 <p><strong>Title:</strong> {articleActuel.title}</p>
                 <p><strong>Body:</strong> {articleActuel.body}</p>
               </div>
@@ -168,5 +165,3 @@ function ArticlesApp() {
 }
 
 export default ArticlesApp;
-
-
